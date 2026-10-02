@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Astrato Bulk Report Upload</title>
   <style>
-    /* Ensure transparent background and tight bounds inside Astrato iFrame */
     html, body {
       margin: 0;
       padding: 0;
@@ -19,7 +18,6 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* Button matching Astrato UI theme (#0b5c7a) */
     .astrato-btn {
       background-color: #0b5c7a;
       color: #ffffff;
@@ -47,7 +45,6 @@
       transform: scale(0.98);
     }
 
-    /* Hide standard HTML file picker input */
     #fileInput {
       display: none;
     }
@@ -55,10 +52,14 @@
 </head>
 <body>
 
-  <!-- Hidden File Input -->
-  <input type="file" id="fileInput" accept=".xlsx, .csv" onchange="handleFileUpload(this.files)" />
+  <!-- RESTRICTED TO EXCEL ONLY (.xlsx, .xls) -->
+  <input 
+    type="file" 
+    id="fileInput" 
+    accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+    onchange="handleFileUpload(this.files)" 
+  />
 
-  <!-- Native-looking Astrato Button -->
   <button class="astrato-btn" id="uploadBtn" onclick="document.getElementById('fileInput').click()">
     Upload bulk report request
   </button>
@@ -67,20 +68,27 @@
     function handleFileUpload(files) {
       if (files.length === 0) return;
 
+      const file = files[0];
       const btn = document.getElementById('uploadBtn');
-      const fileName = files[0].name;
+
+      // JavaScript validation check to ensure it's an Excel file
+      const validExtensions = ['.xlsx', '.xls'];
+      const fileName = file.name.toLowerCase();
+      const isValidExcel = validExtensions.some(ext => fileName.endsWith(ext));
+
+      if (!isValidExcel) {
+        alert("Please upload an Excel file (.xlsx or .xls). CSV files are not permitted.");
+        document.getElementById('fileInput').value = ""; // Reset file selection
+        return;
+      }
 
       // Update button state to visually reflect progress
-      btn.innerText = "Uploading " + fileName + "...";
-      btn.style.backgroundColor = "#d97706"; // Amber processing color
+      btn.innerText = "Uploading " + file.name + "...";
+      btn.style.backgroundColor = "#d97706"; // Processing Amber
 
       const formData = new FormData();
-      formData.append("file", files[0]);
+      formData.append("file", file);
 
-      /*
-        REPLACE 'YOUR_GCP_FUNCTION_URL' WITH YOUR GCP CLOUD FUNCTION / API ENDPOINT.
-        For POC testing prior to deploying the backend, this fallback block simulates success.
-      */
       const gcpEndpoint = "YOUR_GCP_FUNCTION_URL";
 
       fetch(gcpEndpoint, {
@@ -95,8 +103,8 @@
         showSuccessState(btn);
       })
       .catch(error => {
-        // Fallback execution for live UI manager demonstration before GCP backend is live
-        console.log("File captured locally for POC demonstration:", fileName);
+        // Fallback for live POC manager demo
+        console.log("Excel file captured for POC demonstration:", file.name);
         showSuccessState(btn);
       });
     }
@@ -105,11 +113,10 @@
       btn.innerText = "✓ Uploaded & Emails Sent!";
       btn.style.backgroundColor = "#2e7d32"; // Success green
 
-      // Reset button back to default state after 4 seconds
       setTimeout(() => {
         btn.innerText = "Upload bulk report request";
         btn.style.backgroundColor = "#0b5c7a";
-        document.getElementById('fileInput').value = ""; // Reset file input
+        document.getElementById('fileInput').value = "";
       }, 4000);
     }
   </script>
